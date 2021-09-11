@@ -9,7 +9,7 @@ namespace DelvUI.Interface.StatusEffects
     [Serializable]
     public class StatusEffectsListConfig : PluginConfigObject
     {
-        public bool Enabled = true;
+        public bool Enabled = false;
         public bool FillRowsFirst = true;
         public GrowthDirections GrowthDirections;
         public StatusEffectIconConfig IconConfig = new();
@@ -38,6 +38,16 @@ namespace DelvUI.Interface.StatusEffects
             ShowPermanentEffects = showPermanentEffects;
             GrowthDirections = growthDirections;
             IconConfig = iconConfig;
+        }
+        public StatusEffectsListConfig(Vector2 position, bool showBuffs, bool showDebuffs, bool showPermanentEffects, GrowthDirections growthDirections, StatusEffectIconConfig iconConfig, Vector2 maxSize)
+        {
+            Position = position;
+            ShowBuffs = showBuffs;
+            ShowDebuffs = showDebuffs;
+            ShowPermanentEffects = showPermanentEffects;
+            GrowthDirections = growthDirections;
+            IconConfig = iconConfig;
+            MaxSize = maxSize;
         }
 
         public bool Draw()

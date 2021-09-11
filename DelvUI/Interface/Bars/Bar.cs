@@ -249,7 +249,7 @@ namespace DelvUI.Interface.Bars
             else
             {
                 var xPos = Parent.Vertical ? Parent.XPosition - (float)ChildNum / Parent.InnerBars.Count * Parent.BarWidth : Parent.XPosition + barWidth;
-                var yPos = Parent.Vertical ? Parent.YPosition + barHeight : Parent.YPosition - (float)ChildNum / Parent.InnerBars.Count * Parent.BarHeight;
+                var yPos = Parent.Vertical ? Parent.YPosition + barHeight : Parent.YPosition + (float)ChildNum / Parent.InnerBars.Count * Parent.BarHeight;
                 var cursorPos = new Vector2(xPos, yPos);
 
                 foreach (var chunkSize in Parent.ChunkSizes.AsEnumerable().Reverse().ToList())
@@ -560,6 +560,7 @@ namespace DelvUI.Interface.Bars
         public Vector4 Color { get; set; }
         public Vector4 OutlineColor { get; set; }
         public string Text { get; set; }
+        public Vector2 TextOffset { get; set; } = Vector2.Zero;
         public float Scale { get; set; }
 
         public Vector2 CalcTextPosition(Vector2 cursorPos, string text, float barWidth, float barHeight)
@@ -700,7 +701,7 @@ namespace DelvUI.Interface.Bars
                     break;
             }
 
-            return new Vector2(textXPos, textYPos);
+            return new Vector2(textXPos, textYPos) + TextOffset;
         }
     }
 
