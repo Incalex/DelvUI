@@ -148,6 +148,11 @@ namespace DelvUI.Interface
 
         protected virtual void DrawHealthBar()
         {
+            if (!PluginConfiguration.ShowHealthBar)
+            {
+                return;
+            }
+            
             Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
             BarSize = new Vector2(HealthBarWidth, HealthBarHeight);
             PlayerCharacter actor = PluginInterface.ClientState.LocalPlayer;
@@ -190,7 +195,13 @@ namespace DelvUI.Interface
                 if (HasTankInvuln(actor) == 1)
                 {
                     Dictionary<string, uint> jobColors = PluginConfiguration.JobColorMap[PluginInterface.ClientState.LocalPlayer.ClassJob.Id];
-                    drawList.AddRectFilled(cursorPos, cursorPos + BarSize, jobColors["invuln"]);
+                    jobColors.TryGetValue("invuln", out uint tankInvulnColor);
+                    if (tankInvulnColor == 0u)
+                    {
+                        tankInvulnColor = ImGui.ColorConvertFloat4ToU32(PluginConfiguration.GenericTankColor);
+                    }
+
+                    drawList.AddRectFilled(cursorPos, cursorPos + BarSize, tankInvulnColor);
                 }
 
                 drawList.AddRectFilledMultiColor(
@@ -243,26 +254,20 @@ namespace DelvUI.Interface
             switch (type)
             {
                 case PrimaryResourceType.MP:
-                {
                     current = actor.CurrentMp;
                     max = actor.MaxMp;
-                }
 
                     break;
 
                 case PrimaryResourceType.CP:
-                {
                     current = actor.CurrentCp;
                     max = actor.MaxCp;
-                }
 
                     break;
 
                 case PrimaryResourceType.GP:
-                {
                     current = actor.CurrentGp;
                     max = actor.MaxGp;
-                }
 
                     break;
             }
@@ -270,17 +275,18 @@ namespace DelvUI.Interface
             BarSize = ConfigGeneral.PrimaryResourceSize;
             Vector2 position = CalculatePosition(ConfigGeneral.PrimaryResourcePosition, ConfigGeneral.PrimaryResourceSize);
 
+            // text config
+            string text = ConfigGeneral.ShowPrimaryResourceBarValue ? current.ToString() : "";
+            BarText barText = new(BarTextPosition.CenterLeft, BarTextType.Custom, text)
+            {
+                TextOffset = ConfigGeneral.PrimaryResourceBarTextOffset
+            };
+
             BarBuilder builder = BarBuilder.Create(position, BarSize)
                                            .AddInnerBar(current, max, partialFillColor.Map)
                                            .SetBackgroundColor(ConfigGeneral.BarBackgroundColor.Background)
                                            .SetTextMode(BarTextMode.Single)
-                                           .SetText(
-                                               BarTextPosition.CenterLeft,
-                                               BarTextType.Custom,
-                                               ConfigGeneral.ShowPrimaryResourceBarValue
-                                                   ? current.ToString()
-                                                   : ""
-                                           );
+                                           .SetText(barText);
 
             ImDrawListPtr drawList = ImGui.GetWindowDrawList();
             builder.Build().Draw(drawList, PluginConfiguration);
@@ -295,6 +301,11 @@ namespace DelvUI.Interface
 
         protected virtual void DrawTargetBar()
         {
+            if (!PluginConfiguration.ShowTargetBar)
+            {
+                return;
+            }
+            
             Actor target = PluginInterface.ClientState.Targets.SoftTarget ?? PluginInterface.ClientState.Targets.CurrentTarget;
 
             if (target is null)
@@ -370,7 +381,14 @@ namespace DelvUI.Interface
 
                             if (HasTankInvuln(actor) == 1)
                             {
-                                drawList.AddRectFilled(cursorPos, cursorPos + BarSize, colors["invuln"]);
+
+                                colors.TryGetValue("invuln", out uint tankInvulnColor);
+                                if (tankInvulnColor == 0u)
+                                {
+                                    tankInvulnColor = ImGui.ColorConvertFloat4ToU32(PluginConfiguration.GenericTankColor);
+                                }
+
+                                drawList.AddRectFilled(cursorPos, cursorPos + BarSize, tankInvulnColor);
                             }
 
                             drawListPtr.AddRectFilledMultiColor(
@@ -415,6 +433,11 @@ namespace DelvUI.Interface
 
         protected virtual void DrawFocusBar()
         {
+            if (!PluginConfiguration.ShowFocusBar)
+            {
+                return;
+            }
+
             Actor focus = PluginInterface.ClientState.Targets.FocusTarget;
 
             if (focus is null)
@@ -466,7 +489,13 @@ namespace DelvUI.Interface
 
                     if (HasTankInvuln(actor) == 1)
                     {
-                        drawList.AddRectFilled(cursorPos, cursorPos + barSize, colors["invuln"]);
+                        colors.TryGetValue("invuln", out uint tankInvulnColor);
+                        if (tankInvulnColor == 0u)
+                        {
+                            tankInvulnColor = ImGui.ColorConvertFloat4ToU32(PluginConfiguration.GenericTankColor);
+                        }
+
+                        drawList.AddRectFilled(cursorPos, cursorPos + barSize, tankInvulnColor);
                     }
 
                     drawList.AddRectFilledMultiColor(
@@ -505,6 +534,11 @@ namespace DelvUI.Interface
 
         protected virtual void DrawTargetOfTargetBar(int targetActorId)
         {
+            if (!PluginConfiguration.ShowTargetOfTargetBar)
+            {
+                return;
+            }
+
             Actor target = null;
 
             if (targetActorId == 0 && PluginInterface.ClientState.LocalPlayer.TargetActorID == 0)
@@ -555,7 +589,14 @@ namespace DelvUI.Interface
 
                 if (HasTankInvuln(actor) == 1)
                 {
-                    drawList.AddRectFilled(cursorPos, cursorPos + barSize, colors["invuln"]);
+
+                    colors.TryGetValue("invuln", out uint tankInvulnColor);
+                    if (tankInvulnColor == 0u)
+                    {
+                        tankInvulnColor = ImGui.ColorConvertFloat4ToU32(PluginConfiguration.GenericTankColor);
+                    }
+
+                    drawList.AddRectFilled(cursorPos, cursorPos + barSize, tankInvulnColor);
                 }
 
                 drawList.AddRectFilledMultiColor(
@@ -1383,7 +1424,7 @@ namespace DelvUI.Interface
 
         #region Primary Resource Threshold
 
-        [Checkbox("Show Primary Resource Threshold Market")]
+        [Checkbox("Show Primary Resource Threshold Marker")]
         [CollapseControl(15, 1)]
         public bool ShowPrimaryResourceBarThresholdMarker = false;
 

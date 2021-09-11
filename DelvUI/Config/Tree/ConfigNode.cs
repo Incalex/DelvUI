@@ -34,6 +34,41 @@ namespace DelvUI.Config.Tree
                 child.Load(ConfigurationManager.GetInstance().ConfigDirectory);
             }
         }
+
+        public virtual string GetBase64String()
+        {
+            if (children == null)
+            {
+                return "";
+            }
+
+            string base64String = "";
+
+            foreach (Node child in children)
+            {
+                string childString = child.GetBase64String();
+
+                if (childString != "")
+                {
+                    base64String += "|" + childString;
+                }
+            }
+
+            return base64String;
+        }
+
+        public virtual void LoadBase64String(string[] importStrings)
+        {
+            if (children == null)
+            {
+                return;
+            }
+
+            foreach (Node child in children)
+            {
+                child.LoadBase64String(importStrings);
+            }
+        }
     }
 
     public class BaseNode : Node
@@ -41,6 +76,41 @@ namespace DelvUI.Config.Tree
         public new List<SectionNode> children;
 
         public BaseNode() { children = new List<SectionNode>(); }
+
+        public override string GetBase64String()
+        {
+            if (children == null)
+            {
+                return "";
+            }
+
+            string base64String = "";
+
+            foreach (Node child in children)
+            {
+                string childString = child.GetBase64String();
+
+                if (childString != "")
+                {
+                    base64String += "|" + childString;
+                }
+            }
+
+            return base64String;
+        }
+
+        public override void LoadBase64String(string[] importStrings)
+        {
+            if (children == null)
+            {
+                return;
+            }
+
+            foreach (Node child in children)
+            {
+                child.LoadBase64String(importStrings);
+            }
+        }
 
         private void ToggleJobPacks()
         {
@@ -53,7 +123,7 @@ namespace DelvUI.Config.Tree
             bool changed = false;
 
             ImGui.SetNextWindowSize(new Vector2(1050, 750), ImGuiCond.Appearing);
-            ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0f / 255f, 0f / 255f, 0f / 255f, 0.85f));
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(10f / 255f, 10f / 255f, 10f / 255f, 0.95f));
 
             if (!ImGui.Begin("titlebarnew", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollWithMouse))
             {
@@ -74,16 +144,18 @@ namespace DelvUI.Config.Tree
                         ImGui.Image(delvUiBanner.ImGuiHandle, new Vector2(delvUiBanner.Width, delvUiBanner.Height));
                     }
 
-                    ImGui.BeginChild("left pane", new Vector2(150, -ImGui.GetFrameHeightWithSpacing()), true);
+                    ImGui.BeginChild("left pane", new Vector2(150, -ImGui.GetFrameHeightWithSpacing() - 32), true);
 
-                    bool selected = false;
+                    // if no section is selected, select the first
+                    if (children.Any() && children.All(o => !o.Selected))
+                    {
+                        children[0].Selected = true;
+                    }
 
                     foreach (SectionNode selectionNode in children)
                     {
                         if (ImGui.Selectable(selectionNode.Name, selectionNode.Selected))
                         {
-                            selected = true;
-
                             selectionNode.Selected = true;
 
                             foreach (SectionNode otherNode in children.FindAll(x => x != selectionNode))
@@ -91,11 +163,6 @@ namespace DelvUI.Config.Tree
                                 otherNode.Selected = false;
                             }
                         }
-                    }
-
-                    if (!selected && children.Any())
-                    {
-                        children[0].Selected = true;
                     }
 
                     ImGui.EndChild();
@@ -119,61 +186,78 @@ namespace DelvUI.Config.Tree
 
             ImGui.EndGroup(); // Middle section
 
-            ImGui.Separator();
+            ImGui.BeginGroup();
 
-            ImGui.BeginGroup(); // Bottom Bar
-
+            if (ImGui.Button("Switch to General Configuration", new Vector2(ImGui.GetWindowContentRegionWidth(), 0)))
             {
-                if (ImGui.Button("General"))
-                {
-                    ToggleJobPacks();
-                }
-
-                ImGui.SameLine();
-
-                /*
-                    if (ImGui.Button("Lock HUD")) // TODO: Functioning buttons
-                    { }
-                
-                ImGui.SameLine();
-                */
-                if (ImGui.Button("Toggle HUD"))
-                {
-                    ConfigurationManager.GetInstance().ConfigurationWindow.ToggleHud();
-                }
-
-                ImGui.SameLine();
-
-                if (ImGui.Button("Reset HUD"))
-                {
-                    // save the old configuration window for use in the new ConfigurationManager
-                    ConfigurationWindow configurationWindow = ConfigurationManager.GetInstance().ConfigurationWindow;
-                    // make a new configuration from defaults
-                    ConfigurationManager.Initialize(true);
-                    ConfigurationManager.GetInstance().ConfigurationWindow = configurationWindow;
-                    // save the defaults to file
-                    ConfigurationManager.GetInstance().SaveConfigurations();
-                    // prevent the config window from closing
-                    ConfigurationManager.GetInstance().DrawConfigWindow = true;
-                }
-
-                ImGui.SameLine();
-
-                Vector2 pos = ImGui.GetCursorPos();
-                ImGui.SetCursorPos(new Vector2(ImGui.GetWindowWidth() - 60, ImGui.GetCursorPos().Y));
-
-                if (ImGui.Button("Donate!"))
-                {
-                    Process.Start("https://ko-fi.com/DelvUI");
-                }
-
-                ImGui.SetCursorPos(pos);
-
-                // show current version
-                ImGui.Text($"v{Plugin.Version}");
+                ToggleJobPacks();
             }
 
-            ImGui.EndGroup(); // Bottom Bar
+            ImGui.Separator();
+
+            ImGui.EndGroup();
+
+            ImGui.BeginGroup();
+
+            if (ImGui.Button(ConfigurationManager.GetInstance().ConfigurationWindow.GetToggleHudState() ? "Show HUD" : "Hide HUD", new Vector2(ImGui.GetWindowWidth() / 7, 0)))
+            {
+                ConfigurationManager.GetInstance().ConfigurationWindow.ToggleHud();
+            }
+
+            ImGui.SameLine();
+
+            if (ImGui.Button("Reset to Default", new Vector2(ImGui.GetWindowWidth() / 7, 0)))
+
+            {
+                // save the old configuration window for use in the new ConfigurationManager
+                ConfigurationWindow configurationWindow = ConfigurationManager.GetInstance().ConfigurationWindow;
+                // make a new configuration from defaults
+                ConfigurationManager.Initialize(true);
+                ConfigurationManager.GetInstance().ConfigurationWindow = configurationWindow;
+                // save the defaults to file
+                ConfigurationManager.GetInstance().SaveConfigurations();
+                // prevent the config window from closing
+                ConfigurationManager.GetInstance().DrawConfigWindow = true;
+            }
+
+            ImGui.SameLine();
+
+            ImGui.BeginChild("versionleft", new Vector2(ImGui.GetWindowWidth() / 7 + 10, 0));
+            ImGui.EndChild();
+
+            ImGui.SameLine();
+
+            ImGui.BeginChild("versioncenter", new Vector2(ImGui.GetWindowWidth() / 7 + 85, 0));
+            ImGui.Text($"v{Plugin.Version}");
+            ImGui.EndChild();
+
+            ImGui.SameLine();
+
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(114f / 255f, 137f / 255f, 218f / 255f, 1f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(124f / 255f, 147f / 255f, 228f / 255f, 1f));
+
+            if (ImGui.Button("Help!", new Vector2(ImGui.GetWindowWidth() / 7, 0)))
+            {
+                Process.Start("https://discord.gg/delvui");
+            }
+
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+
+            ImGui.SameLine();
+
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(255f / 255f, 94f / 255f, 91f / 255f, 1f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(255f / 255f, 104f / 255f, 101f / 255f, 1f));
+
+            if (ImGui.Button("Donate!", new Vector2(ImGui.GetWindowWidth() / 7, 0)))
+            {
+                Process.Start("https://ko-fi.com/DelvUI");
+            }
+
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+
+            ImGui.EndGroup();
 
             ImGui.End();
 
@@ -236,6 +320,41 @@ namespace DelvUI.Config.Tree
 
         public SectionNode() { children = new List<SubSectionNode>(); }
 
+        public override string GetBase64String()
+        {
+            if (children == null)
+            {
+                return "";
+            }
+
+            string base64String = "";
+
+            foreach (Node child in children)
+            {
+                string childString = child.GetBase64String();
+
+                if (childString != "")
+                {
+                    base64String += "|" + childString;
+                }
+            }
+
+            return base64String;
+        }
+
+        public override void LoadBase64String(string[] importStrings)
+        {
+            if (children == null)
+            {
+                return;
+            }
+
+            foreach (Node child in children)
+            {
+                child.LoadBase64String(importStrings);
+            }
+        }
+
         public void Draw(ref bool changed)
         {
             if (!Selected)
@@ -245,7 +364,7 @@ namespace DelvUI.Config.Tree
 
             ImGui.BeginChild(
                 "item view",
-                new Vector2(0, -ImGui.GetFrameHeightWithSpacing()),
+                new Vector2(0, -ImGui.GetFrameHeightWithSpacing() - 32),
                 false,
                 ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse
             ); // Leave room for 1 line below us
@@ -348,6 +467,41 @@ namespace DelvUI.Config.Tree
         public new List<SubSectionNode> children;
 
         public NestedSubSectionNode() { children = new List<SubSectionNode>(); }
+
+        public override string GetBase64String()
+        {
+            if (children == null)
+            {
+                return "";
+            }
+
+            string base64String = "";
+
+            foreach (Node child in children)
+            {
+                string childString = child.GetBase64String();
+
+                if (childString != "")
+                {
+                    base64String += "|" + childString;
+                }
+            }
+
+            return base64String;
+        }
+
+        public override void LoadBase64String(string[] importStrings)
+        {
+            if (children == null)
+            {
+                return;
+            }
+
+            foreach (Node child in children)
+            {
+                child.LoadBase64String(importStrings);
+            }
+        }
 
         public override void Draw(ref bool changed)
         {
@@ -452,6 +606,52 @@ namespace DelvUI.Config.Tree
         private string _importString = "";
         private string _exportString = "";
 
+        public override string GetBase64String()
+        {
+            PortableAttribute portableAttribute = (PortableAttribute)ConfigObject.GetType().GetCustomAttribute(typeof(PortableAttribute), false);
+
+            return portableAttribute == null || portableAttribute.portable ? ConfigurationManager.GenerateExportString(ConfigObject) : "";
+        }
+
+        public override void LoadBase64String(string[] importStrings)
+        {
+            // go through and check types
+            // if type matches, load it
+            foreach (string importString in importStrings)
+            {
+                Type importedType = null;
+                try
+                {
+                    // get type from json
+                    string jsonString = ConfigurationManager.Base64DecodeAndDecompress(importString);
+                    importedType = Type.GetType((string)JObject.Parse(jsonString)["$type"]);
+                }
+                catch (Exception ex)
+                {
+                    PluginLog.Log($"Error parsing import string!\n{ex.StackTrace}");
+                }
+                // abort import if the import string is for the wrong type
+                if (importedType != null && ConfigObject.GetType().FullName == importedType.FullName)
+                {
+                    // see comments on ConfigPageNode's Load
+                    MethodInfo methodInfo = typeof(ConfigurationManager).GetMethod("LoadImportString");
+                    MethodInfo function = methodInfo.MakeGenericMethod(ConfigObject.GetType());
+                    PluginConfigObject importedConfigObject = (PluginConfigObject)function.Invoke(ConfigurationManager.GetInstance(), new object[] { importString });
+
+                    if (importedConfigObject != null)
+                    {
+                        PluginLog.Log($"Importing {importedConfigObject.GetType()}");
+                        ConfigObject = importedConfigObject;
+                        ConfigurationManager.GetInstance().SaveConfigurations();
+                    }
+                    else
+                    {
+                        PluginLog.Log($"Could not load from import string (of type {importedConfigObject.GetType()})");
+                    }
+                }
+            }
+        }
+
         public override void Draw(ref bool changed)
         {
             FieldInfo[] fields = ConfigObject.GetType().GetFields();
@@ -517,9 +717,22 @@ namespace DelvUI.Config.Tree
                 pair.Value.Draw(ref changed);
             }
 
+            // if the ConfigPageNode requires any manual drawing (i.e. not dictated by attributes), draw it now
+            foreach (MethodInfo method in ConfigObject.GetType().GetMethods())
+            {
+                if (!method.GetCustomAttributes(typeof(ManualDrawAttribute), false).Any())
+                {
+                    continue;
+                }
+
+                // TODO allow the manual draw methods to take parameters
+                method.Invoke(ConfigObject, null);
+            }
+
             // if the config object is not marked with [Portable(false)], or is marked with [Portable(true)],
             // draw the import/export UI
-            PortableAttribute portableAttribute = (PortableAttribute) ConfigObject.GetType().GetCustomAttribute((typeof(PortableAttribute)), false);
+            PortableAttribute portableAttribute = (PortableAttribute)ConfigObject.GetType().GetCustomAttribute(typeof(PortableAttribute), false);
+
             if (portableAttribute == null || portableAttribute.portable)
             {
                 DrawImportExportGeneralConfig();
@@ -530,6 +743,7 @@ namespace DelvUI.Config.Tree
         {
             uint maxLength = 40000;
             ImGui.BeginChild("importpane", new Vector2(0, ImGui.GetWindowHeight() / 6), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+
             {
                 ImGui.Text("Import string:");
                 ImGui.InputText("", ref _importString, maxLength);
@@ -537,15 +751,25 @@ namespace DelvUI.Config.Tree
                 if (ImGui.Button("Import configuration"))
                 {
                     // get type from json
-                    string jsonString = ConfigurationManager.Base64DecodeAndDecompress(_importString);
-                    Type importedType = Type.GetType((string)JObject.Parse(jsonString)["$type"]);
+                    Type importedType = null;
+                    try
+                    {
+                        string jsonString = ConfigurationManager.Base64DecodeAndDecompress(_importString);
+                        importedType = Type.GetType((string)JObject.Parse(jsonString)["$type"]);
+                    }
+                    catch (Exception ex)
+                    {
+                        PluginLog.Log($"Error parsing import string!\n{ex.StackTrace}");
+                    }
+
                     // abort import if the import string is for the wrong type
-                    if (ConfigObject.GetType().FullName == importedType.FullName)
+                    if (importedType != null && ConfigObject.GetType().FullName == importedType.FullName)
                     {
                         // see comments on ConfigPageNode's Load
                         MethodInfo methodInfo = typeof(ConfigurationManager).GetMethod("LoadImportString");
                         MethodInfo function = methodInfo.MakeGenericMethod(ConfigObject.GetType());
                         PluginConfigObject importedConfigObject = (PluginConfigObject)function.Invoke(ConfigurationManager.GetInstance(), new object[] { _importString });
+
                         if (importedConfigObject != null)
                         {
                             PluginLog.Log($"Importing {importedConfigObject.GetType()}");
@@ -559,7 +783,7 @@ namespace DelvUI.Config.Tree
                     }
                     else
                     {
-                        PluginLog.Log($"Could not convert {importedType} to {ConfigObject.GetType()}! Aborting import.");
+                        PluginLog.Log($"Could not convert {(importedType == null ? "null" : importedType)} to {ConfigObject.GetType()}! Aborting import.");
                     }
                 }
 
@@ -575,7 +799,6 @@ namespace DelvUI.Config.Tree
                     {
                         PluginLog.Log("Could not get clipboard text:\n" + ex.StackTrace);
                     }
-
                 }
             }
 
@@ -605,7 +828,6 @@ namespace DelvUI.Config.Tree
                     {
                         PluginLog.Log("Could not set clipboard text:\n" + ex.StackTrace);
                     }
-
                 }
             }
 
